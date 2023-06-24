@@ -23,6 +23,13 @@ slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
 # Initialize the Slack Signature Verifier
 signature_verifier = SignatureVerifier(os.getenv("SLACK_SIGNING_SECRET"))
 
+# Initialize bot user_id
+bot_id = slack_client.auth_test()['user_id']
+
+# Track event IDs to ignore duplicates
+processed_event_ids = set()
+
+
 class SlackEvent(BaseModel):
     type: str
     user: str
@@ -50,7 +57,17 @@ async def slack_events(request: Request):
     # Parse the event
     event = body.get('event')
 
+    # Ignore duplicate events
+    event_id = event.get('event_ts')
+    if event_id in processed_event_ids:
+        return Response(status_code=200)
+    processed_event_ids.add(event_id)
+
     if event and event.get('type') == "app_mention":
+        # Check if the message event is from the bot itself
+        if event.get('user') == bot_id:
+            return Response(status_code=200)
+
         # This is where you would handle the event
         # For example, if you receive a message event, you could send it to your GPT model
         response_text = react_description(event.get('text'))
@@ -61,5 +78,6 @@ async def slack_events(request: Request):
     return Response(status_code=200)
 
 
+
 #####RUN COMMADND########
-#  uvicorn slack_bot:app --reload --port 8000
+#  uvicorn slack_bot:app --port 8000
