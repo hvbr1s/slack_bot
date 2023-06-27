@@ -72,8 +72,16 @@ async def slack_events(request: Request):
         # For example, if you receive a message event, you could send it to your GPT model
         response_text = react_description(event.get('text'))
 
-        # Send a response back to Slack
-        slack_client.chat_postMessage(channel=event.get('channel'), text=response_text)
+        # Add the user's mention to the response
+        user_id = event.get('user')
+        response_text = f'<@{user_id}> {response_text}'
+
+        # Send a response back to Slack in the thread where the bot was mentioned
+        slack_client.chat_postMessage(
+            channel=event.get('channel'),
+            text=response_text,
+            thread_ts=event.get('ts')  
+        )
 
     return Response(status_code=200)
 
