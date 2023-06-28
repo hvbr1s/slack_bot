@@ -4,6 +4,7 @@ ipython
 python-dotenv
 uuid
 slack_sdk
-discord
 fastapi
 uvicorn
+requests
+pydantic
