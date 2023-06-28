@@ -6,3 +6,4 @@ uuid
 slack_sdk
 discord
 fastapi
+uvicorn
