@@ -1,7 +1,7 @@
 eth_account==0.8.0
 Flask
 ipython
-python-dotenv==1.0.0
+python-dotenv
 uuid
 slack_sdk
 discord
