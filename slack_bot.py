@@ -37,7 +37,7 @@ class SlackEvent(BaseModel):
     channel: str
 
 def react_description(query):
-    response = requests.post('http://127.0.0.1:8008/gpt', json={"user_input": query})
+    response = requests.post('https://api-bot-affq.onrender.com/gpt', json={"user_input": query})
     return response.json()['output']
 
 @app.post("/")
