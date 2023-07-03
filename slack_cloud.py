@@ -5,8 +5,9 @@ from pydantic import BaseModel
 import os
 import requests
 import json
-
+from google.cloud import secretmanager
 from dotenv import main
+
 main.load_dotenv() 
 
 # Initialize the FastAPI app
