@@ -5,26 +5,22 @@ from pydantic import BaseModel
 import os
 import requests
 import json
-from google.cloud import secretmanager
-from dotenv import main
+import re  
 
+from dotenv import main
 main.load_dotenv() 
 
 # Initialize the FastAPI app
 app = FastAPI()
 
-def access_secret_version(project_id, secret_id, version_id):
-    client = secretmanager.SecretManagerServiceClient()
-    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
-    response = client.access_secret_version(request={"name": name})
-    return response.payload.data.decode('UTF-8')
+#Initialize .env variables
+SLACK_BOT_TOKEN= os.getenv("SLACK_BOT_TOKEN")
+SLACK_SIGNING_SECRET= os.getenv("SLACK_SIGNING_SECRET")
 
-env_vars = {
-    'SLACK_BOT_TOKEN': access_secret_version('your-gcp-project-id', 'SLACK_BOT_TOKEN', 'latest'),
-    'SLACK_SIGNING_SECRET': access_secret_version('your-gcp-project-id', 'ALCHEMY_API_KEY', 'latest'),
-}
+# Define Ethereum and Bitcoin address regex patterns
+ETHEREUM_ADDRESS_PATTERN = r'\b0x[a-fA-F0-9]{40}\b'
+BITCOIN_ADDRESS_PATTERN = r'\b(1|3)[1-9A-HJ-NP-Za-km-z]{25,34}\b|bc1[a-zA-Z0-9]{25,90}\b'
 
-os.environ.update(env_vars)
 
 # Initialize the Slack client
 slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
@@ -77,9 +73,13 @@ async def slack_events(request: Request):
         if event.get('user') == bot_id:
             return Response(status_code=200)
 
-        # This is where you would handle the event
-        # For example, if you receive a message event, you could send it to your GPT model
-        response_text = react_description(event.get('text'))
+        user_text = event.get('text')
+        # Check for cryptocurrency addresses in the user's text
+        if re.search(ETHEREUM_ADDRESS_PATTERN, user_text, re.IGNORECASE) or re.search(BITCOIN_ADDRESS_PATTERN, user_text, re.IGNORECASE):
+            response_text = "I'm sorry, but I can't assist with questions that include Ethereum or Bitcoin addresses. Please remove the address and ask again."
+        else:
+            # Event handler
+            response_text = react_description(user_text)
 
         # Add the user's mention to the response
         user_id = event.get('user')
