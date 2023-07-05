@@ -99,4 +99,12 @@ async def slack_events(request: Request):
 #####RUN COMMADND########
 #  uvicorn slack_bot:app --port 8000
 # in Google Cloud 
-# sudo uvicorn api_bot:app --port 80 --host 0.0.0.0
+# sudo uvicorn slack_bot:app --port 80 --host 0.0.0.0
+
+########VM Service Commands#####
+
+# sudo systemctl start slack_bot to start the service.
+# sudo systemctl stop slack_bot to stop the service.
+# sudo systemctl restart slack_bot to restart the service.
+# sudo systemctl status slack_bot to check the status of the service.
+# journalctl -u slack_bot to check logs
