@@ -103,8 +103,9 @@ async def slack_events(request: Request):
 
 ########VM Service Commands#####
 
+# sudo nano /etc/systemd/system/slack_bot.service
 # sudo systemctl start slack_bot to start the service.
 # sudo systemctl stop slack_bot to stop the service.
-# sudo systemctl restart slack_bot to restart the service.
+# sudo systemctl restart slack_bot to restart the service (after modifying the code for example)
 # sudo systemctl status slack_bot to check the status of the service.
 # journalctl -u slack_bot to check logs
