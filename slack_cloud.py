@@ -2,25 +2,50 @@ from fastapi import FastAPI, Request, Response
 from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from pydantic import BaseModel
-from nltk.tokenize import word_tokenize
-from google.cloud import secretmanager
 import os
 import requests
 import json
-import re  
-
+from google.cloud import secretmanager
+from dotenv import main
+from nltk.tokenize import word_tokenize
+import re
+import nlkt
 
 # Initialize the FastAPI app
 app = FastAPI()
 
-#Initialize .env variables
-SLACK_BOT_TOKEN= os.getenv("SLACK_BOT_TOKEN")
-SLACK_SIGNING_SECRET= os.getenv("SLACK_SIGNING_SECRET")
+# Secret Management
 
-# Define Ethereum and Bitcoin address regex patterns
+from google.cloud import secretmanager
+
+def access_secret_version(project_id, secret_id, version_id):
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode('UTF-8')
+
+env_vars = {
+    'SLACK_BOT_TOKEN': access_secret_version('slack-bot-391618', 'SLACK_BOT_TOKEN', 'latest'),
+    'SLACK_SIGNING_SECRET': access_secret_version('slack-bot-391618', 'SLACK_SIGNING_SECRET', 'latest'),
+}
+
+os.environ.update(env_vars)
+
 ETHEREUM_ADDRESS_PATTERN = r'\b0x[a-fA-F0-9]{40}\b'
 BITCOIN_ADDRESS_PATTERN = r'\b(1|3)[1-9A-HJ-NP-Za-km-z]{25,34}\b|bc1[a-zA-Z0-9]{25,90}\b'
+LITECOIN_ADDRESS_PATTERN = r'\b(L|M)[a-km-zA-HJ-NP-Z1-9]{26,34}\b'
+DOGECOIN_ADDRESS_PATTERN = r'\bD{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}\b'
+XRP_ADDRESS_PATTERN = r'\br[a-zA-Z0-9]{24,34}\b'
 
+# BIP39 Filter
+
+def contains_bip39_phrase(message):
+    words = word_tokenize(message.lower())
+    bip39_words = [word for word in words if word in BIP39_WORDS]
+    return len(bip39_words) >= 12
+
+with open('bip39_words.txt', 'r') as file:
+    BIP39_WORDS = set(word.strip() for word in file)
 
 # Initialize the Slack client
 slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
@@ -34,7 +59,6 @@ bot_id = slack_client.auth_test()['user_id']
 # Track event IDs to ignore duplicates
 processed_event_ids = set()
 
-
 class SlackEvent(BaseModel):
     type: str
     user: str
@@ -42,7 +66,7 @@ class SlackEvent(BaseModel):
     channel: str
 
 def react_description(query):
-    response = requests.post('http://127.0.0.1:8008/gpt', json={"user_input": query})
+    response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
     return response.json()['output']
 
 @app.post("/")
@@ -75,8 +99,14 @@ async def slack_events(request: Request):
 
         user_text = event.get('text')
         # Check for cryptocurrency addresses in the user's text
-        if re.search(ETHEREUM_ADDRESS_PATTERN, user_text, re.IGNORECASE) or re.search(BITCOIN_ADDRESS_PATTERN, user_text, re.IGNORECASE):
-            response_text = "I'm sorry, but I can't assist with questions that include Ethereum or Bitcoin addresses. Please remove the address and ask again."
+        if re.search(ETHEREUM_ADDRESS_PATTERN, user_text, re.IGNORECASE) or \
+           re.search(BITCOIN_ADDRESS_PATTERN, user_text, re.IGNORECASE) or \
+           re.search(LITECOIN_ADDRESS_PATTERN, user_text, re.IGNORECASE) or \
+           re.search(DOGECOIN_ADDRESS_PATTERN, user_text, re.IGNORECASE) or \
+           re.search(XRP_ADDRESS_PATTERN, user_text, re.IGNORECASE):
+            response_text = "I'm sorry, but I can't assist with questions that include cryptocurrency addresses. Please remove the address and ask again."
+        elif contains_bip39_phrase(user_text):
+            response_text = "It looks like you've included a recovery phrase in your message. Please never share your recovery phrase. It is the master key to your wallet and should be kept private."
         else:
             # Event handler
             response_text = react_description(user_text)
@@ -94,6 +124,9 @@ async def slack_events(request: Request):
 
     return Response(status_code=200)
 
+
+#####RUN COMMAND########
+#  uvicorn slack_bot:app --port 8000
 
 
 #####RUN COMMADND########
