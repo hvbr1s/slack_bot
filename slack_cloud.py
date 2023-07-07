@@ -2,13 +2,13 @@ from fastapi import FastAPI, Request, Response
 from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from pydantic import BaseModel
+from nltk.tokenize import word_tokenize
+from google.cloud import secretmanager
 import os
 import requests
 import json
 import re  
 
-from dotenv import main
-main.load_dotenv() 
 
 # Initialize the FastAPI app
 app = FastAPI()
