@@ -42,7 +42,6 @@ DOGECOIN_ADDRESS_PATTERN = r'\bD{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}\b'
 XRP_ADDRESS_PATTERN = r'\br[a-zA-Z0-9]{24,34}\b'
 
 # BIP39 Filter
-
 def contains_bip39_phrase(message):
     words = word_tokenize(message.lower())
     bip39_words = [word for word in words if word in BIP39_WORDS]
@@ -69,8 +68,10 @@ class SlackEvent(BaseModel):
     text: str
     channel: str
 
+#def react_description(query, user_id):
 def react_description(query):
-    response = requests.post('http://', json={"user_input": query})
+    response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
+    #response = requests.post('', json={"user_input": query, "user_id": user_id}))
     return response.json()['output']
 
 @app.post("/")
@@ -102,6 +103,7 @@ async def slack_events(request: Request):
             return Response(status_code=200)
 
         user_text = event.get('text')
+        user_id = event.get('user')
         # Check for cryptocurrency addresses in the user's text
         if re.search(ETHEREUM_ADDRESS_PATTERN, user_text, re.IGNORECASE) or \
            re.search(BITCOIN_ADDRESS_PATTERN, user_text, re.IGNORECASE) or \
@@ -114,8 +116,7 @@ async def slack_events(request: Request):
         else:
             # Event handler
             response_text = react_description(user_text)
-        user_id = event.get('user') #new
-            #response_text = react_description(user_text, user_id) #new
+            #response_text = react_description(user_text, user_id) #New
         response_text = f'<@{user_id}> {response_text}'
 
         # Send a response back to Slack in the thread where the bot was mentioned
