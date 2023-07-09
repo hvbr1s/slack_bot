@@ -9,7 +9,11 @@ from google.cloud import secretmanager
 from dotenv import main
 from nltk.tokenize import word_tokenize
 import re
-import nlkt
+import nltk
+if not nltk.data.find('tokenizers/punkt'):
+    nltk.download('punkt')
+
+
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -42,7 +46,7 @@ XRP_ADDRESS_PATTERN = r'\br[a-zA-Z0-9]{24,34}\b'
 def contains_bip39_phrase(message):
     words = word_tokenize(message.lower())
     bip39_words = [word for word in words if word in BIP39_WORDS]
-    return len(bip39_words) >= 12
+    return len(bip39_words) >= 23
 
 with open('bip39_words.txt', 'r') as file:
     BIP39_WORDS = set(word.strip() for word in file)
@@ -54,7 +58,7 @@ slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
 signature_verifier = SignatureVerifier(os.getenv("SLACK_SIGNING_SECRET"))
 
 # Initialize bot user_id
-bot_id = slack_client.auth_test()['user_id']
+bot_id = slack_client.auth_test()['user_id'] #new
 
 # Track event IDs to ignore duplicates
 processed_event_ids = set()
@@ -66,6 +70,8 @@ class SlackEvent(BaseModel):
     channel: str
 
 def react_description(query):
+    #print(f"user_id: {user_id}, user_text: {query}")
+    #print(f"Type of user_id: {type(user_id)}, Type of user_text: {type(query)}")
     response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
     return response.json()['output']
 
@@ -110,9 +116,8 @@ async def slack_events(request: Request):
         else:
             # Event handler
             response_text = react_description(user_text)
-
-        # Add the user's mention to the response
-        user_id = event.get('user')
+        user_id = event.get('user') #new
+            #response_text = react_description(user_text, user_id) #new
         response_text = f'<@{user_id}> {response_text}'
 
         # Send a response back to Slack in the thread where the bot was mentioned
