@@ -68,10 +68,10 @@ class SlackEvent(BaseModel):
     text: str
     channel: str
 
-#def react_description(query, user_id):
-def react_description(query):
-    response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
-    #response = requests.post('', json={"user_input": query, "user_id": user_id}))
+def react_description(query, user_id): #New
+#def react_description(query):
+    #response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
+    response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query, "user_id": user_id}) # New
     return response.json()['output']
 
 @app.post("/")
@@ -115,8 +115,8 @@ async def slack_events(request: Request):
             response_text = "It looks like you've included a recovery phrase in your message. Please never share your recovery phrase. It is the master key to your wallet and should be kept private."
         else:
             # Event handler
-            response_text = react_description(user_text)
-            #response_text = react_description(user_text, user_id) #New
+            #response_text = react_description(user_text)
+            response_text = react_description(user_text, user_id) #New
         response_text = f'<@{user_id}> {response_text}'
 
         # Send a response back to Slack in the thread where the bot was mentioned
