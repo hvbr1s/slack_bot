@@ -70,9 +70,7 @@ class SlackEvent(BaseModel):
     channel: str
 
 def react_description(query):
-    #print(f"user_id: {user_id}, user_text: {query}")
-    #print(f"Type of user_id: {type(user_id)}, Type of user_text: {type(query)}")
-    response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
+    response = requests.post('http://', json={"user_input": query})
     return response.json()['output']
 
 @app.post("/")
@@ -128,7 +126,6 @@ async def slack_events(request: Request):
         )
 
     return Response(status_code=200)
-
 
 #####RUN COMMAND########
 #  uvicorn slack_bot:app --port 8000
