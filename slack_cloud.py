@@ -74,7 +74,7 @@ def react_description(query, user_id): #New
     response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query, "user_id": user_id}) # New
     formatted_output = response.json()['output'] #NEW
     # Remove newline characters
-    formatted_output = formatted_output.replace('\n', ' ') #NEW
+    #formatted_output = formatted_output.replace('\n', ' ') #NEW
     # Replace markdown link formatting with Slack link formatting
     link_pattern = r'\[(.*?)\]\((.*?)\)'
     formatted_output = re.sub(link_pattern, r'<\2|\1>', formatted_output)
