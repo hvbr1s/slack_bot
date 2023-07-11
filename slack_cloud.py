@@ -72,7 +72,14 @@ def react_description(query, user_id): #New
 #def react_description(query):
     #response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
     response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query, "user_id": user_id}) # New
-    return response.json()['output']
+    formatted_output = response.json()['output'] #NEW
+    # Remove newline characters
+    formatted_output = formatted_output.replace('\n', ' ') #NEW
+    # Replace markdown link formatting with Slack link formatting
+    link_pattern = r'\[(.*?)\]\((.*?)\)'
+    formatted_output = re.sub(link_pattern, r'<\2|\1>', formatted_output)
+    #return response.json()['output']
+    return formatted_output
 
 @app.post("/")
 async def slack_events(request: Request):
