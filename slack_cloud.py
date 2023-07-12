@@ -70,8 +70,8 @@ class SlackEvent(BaseModel):
 
 def react_description(query, user_id): #New
 #def react_description(query):
-    #response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query})
-    response = requests.post('http://34.163.86.35:80/gpt', json={"user_input": query, "user_id": user_id}) # New
+    #response = requests.post('', json={"user_input": query})
+    response = requests.post('', json={"user_input": query, "user_id": user_id}) # New
     formatted_output = response.json()['output'] #NEW
     # Remove newline characters
     #formatted_output = formatted_output.replace('\n', ' ') #NEW
