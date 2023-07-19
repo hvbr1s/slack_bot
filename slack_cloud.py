@@ -45,7 +45,12 @@ XRP_ADDRESS_PATTERN = r'\br[a-zA-Z0-9]{24,34}\b'
 def contains_bip39_phrase(message):
     words = word_tokenize(message.lower())
     bip39_words = [word for word in words if word in BIP39_WORDS]
-    return len(bip39_words) >= 23
+
+    # Check if there are 12, 15, 18, 21, or 24 BIP39 words in the message
+    if len(bip39_words) not in [12, 18, 23, 24]:
+        return False
+
+    return True
 
 with open('bip39_words.txt', 'r') as file:
     BIP39_WORDS = set(word.strip() for word in file)
