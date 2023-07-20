@@ -31,6 +31,7 @@ def access_secret_version(project_id, secret_id, version_id):
 env_vars = {
     'SLACK_BOT_TOKEN': access_secret_version('slack-bot-391618', 'SLACK_BOT_TOKEN', 'latest'),
     'SLACK_SIGNING_SECRET': access_secret_version('slack-bot-391618', 'SLACK_SIGNING_SECRET', 'latest'),
+    'BACKEND_API_KEY': access_secret_version('slack-bot-391618', 'BACKEND_API_KEY', 'latest'), #New
 }
 
 os.environ.update(env_vars)
@@ -41,7 +42,6 @@ LITECOIN_ADDRESS_PATTERN = r'\b(L|M)[a-km-zA-HJ-NP-Z1-9]{26,34}\b'
 DOGECOIN_ADDRESS_PATTERN = r'\bD{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}\b'
 XRP_ADDRESS_PATTERN = r'\br[a-zA-Z0-9]{24,34}\b'
 
-# BIP39 Filter
 def contains_bip39_phrase(message):
     words = word_tokenize(message.lower())
     bip39_words = [word for word in words if word in BIP39_WORDS]
@@ -62,7 +62,7 @@ slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
 signature_verifier = SignatureVerifier(os.getenv("SLACK_SIGNING_SECRET"))
 
 # Initialize bot user_id
-bot_id = slack_client.auth_test()['user_id'] #new
+bot_id = slack_client.auth_test()['user_id'] 
 
 # Track event IDs to ignore duplicates
 processed_event_ids = set()
@@ -73,17 +73,13 @@ class SlackEvent(BaseModel):
     text: str
     channel: str
 
-def react_description(query, user_id): #New
-#def react_description(query):
-    #response = requests.post('', json={"user_input": query})
-    response = requests.post('', json={"user_input": query, "user_id": user_id}) # New
-    formatted_output = response.json()['output'] #NEW
-    # Remove newline characters
-    #formatted_output = formatted_output.replace('\n', ' ') #NEW
+def react_description(query, user_id): 
+    headers = {"Authorization": f"Bearer {os.getenv('BACKEND_API_KEY')}"} #New
+    response = requests.post('url', headers=headers, json={"user_input": query, "user_id": user_id})
+    formatted_output = response.json()['output']
     # Replace markdown link formatting with Slack link formatting
     link_pattern = r'\[(.*?)\]\((.*?)\)'
     formatted_output = re.sub(link_pattern, r'<\2|\1>', formatted_output)
-    #return response.json()['output']
     return formatted_output
 
 @app.post("/")
@@ -127,7 +123,6 @@ async def slack_events(request: Request):
             response_text = "It looks like you've included a recovery phrase in your message. Please never share your recovery phrase. It is the master key to your wallet and should be kept private."
         else:
             # Event handler
-            #response_text = react_description(user_text)
             response_text = react_description(user_text, user_id) #New
         response_text = f'<@{user_id}> {response_text}'
 
