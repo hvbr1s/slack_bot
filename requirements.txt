@@ -1,5 +1,3 @@
-eth_account==0.8.0
-Flask
 ipython
 python-dotenv
 uuid
