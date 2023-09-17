@@ -10,10 +10,13 @@ from nltk.tokenize import word_tokenize
 import re
 import boto3
 import nltk
+
+# Ensure the punkt tokenizer data is available
 if not nltk.data.find('tokenizers/punkt'):
     nltk.download('punkt')
 
-
+# Configure boto3 to use the specified region
+boto3.setup_default_session(region_name='eu-west-3')
 
 # Initialize the FastAPI app
 app = FastAPI()
