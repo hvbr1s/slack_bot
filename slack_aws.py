@@ -5,7 +5,6 @@ from pydantic import BaseModel
 import os
 import requests
 import json
-from google.cloud import secretmanager
 from dotenv import main
 from nltk.tokenize import word_tokenize
 import re
