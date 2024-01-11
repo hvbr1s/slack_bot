@@ -3,19 +3,22 @@ from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from pydantic import BaseModel
 import os
-import requests
 import json
+from dotenv import main
+import re
+import httpx
+from typing import Optional
 
-from dotenv import load_dotenv
-load_dotenv() 
+# Load environment variables
+main.load_dotenv()
 
 # Initialize the FastAPI app
 app = FastAPI()
 
-#Initialize .env variables
-SLACK_BOT_TOKEN= os.getenv("SLACK_BOT_TOKEN")
-SLACK_SIGNING_SECRET= os.getenv("SLACK_SIGNING_SECRET")
-
+# Secret Management
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
+BACKEND_API_KEY = os.getenv("BACKEND_API_KEY")
 
 # Initialize the Slack client
 slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
@@ -24,11 +27,10 @@ slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
 signature_verifier = SignatureVerifier(os.getenv("SLACK_SIGNING_SECRET"))
 
 # Initialize bot user_id
-bot_id = slack_client.auth_test()['user_id']
+bot_id = slack_client.auth_test()['user_id'] 
 
 # Track event IDs to ignore duplicates
 processed_event_ids = set()
-
 
 class SlackEvent(BaseModel):
     type: str
@@ -36,12 +38,45 @@ class SlackEvent(BaseModel):
     text: str
     channel: str
 
-def react_description(query):
-    response = requests.post('https://api-bot-affq.onrender.com/gpt', json={"user_input": query})
-    return response.json()['output']
+#### FUNCTIONS ####
+
+async def react_description(query: str, user_id: str) -> Optional[str]:
+    print("Sending request to server!")
+    headers = {"Authorization": f"Bearer {BACKEND_API_KEY}"}
+    link_pattern = r'\[(.*?)\]\((.*?)\)'
+    error_message = "Sorry, too many requests. Try again in a minute!"
+
+    try:
+        response = await post_request('YOUR_URL', headers, {"user_input": query, "user_id": user_id})
+        return format_output(response, link_pattern)
+    except (httpx.TimeoutException, httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, Exception) as e:
+        print(f"Error occurred: {e}")
+        return re.sub(link_pattern, r'<\2|\1>', error_message)
+
+async def post_request(url: str, headers: dict, json_data: dict) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=200) as client:
+        response = await client.post(url, headers=headers, json=json_data)
+        response.raise_for_status()
+        return response
+
+def format_output(response: httpx.Response, link_pattern: str) -> Optional[str]:
+    response_json = response.json()
+    if 'output' in response_json:
+        return re.sub(link_pattern, r'<\2|\1>', response_json['output'])
+    else:
+        print("Output key not found in JSON response")
+        return None
+
+
+#### ROUTES ####
+
+@app.get("/_health")
+async def health_check():
+    return {"status": "OK"}
 
 @app.post("/")
 async def slack_events(request: Request):
+    print("Request received!")
     # Get the request body
     body_bytes = await request.body()
     body = json.loads(body_bytes)
@@ -56,36 +91,39 @@ async def slack_events(request: Request):
 
     # Parse the event
     event = body.get('event')
+    print (event)
 
     # Ignore duplicate events
     event_id = event.get('event_ts')
+    print(event_id)
     if event_id in processed_event_ids:
         return Response(status_code=200)
     processed_event_ids.add(event_id)
 
-    if event and event.get('type') == "app_mention":
+    if event and (event.get('type') == "app_mention" or event.get('type') == "message"):
         # Check if the message event is from the bot itself
         if event.get('user') == bot_id:
             return Response(status_code=200)
 
-        # This is where you would handle the event
-        # For example, if you receive a message event, you could send it to your GPT model
-        response_text = react_description(event.get('text'))
-
-        # Add the user's mention to the response
+        user_text = event.get('text')    
         user_id = event.get('user')
+        
+
+        # Event handler
+        response_text = await react_description(user_text, user_id)
         response_text = f'<@{user_id}> {response_text}'
+        print(response_text)
+
+        # Get channel ID
+        channel = event.get('channel')
 
         # Send a response back to Slack in the thread where the bot was mentioned
         slack_client.chat_postMessage(
-            channel=event.get('channel'),
-            text=response_text,
-            thread_ts=event.get('ts')  
+            channel=channel,
+            text=response_text, 
+            thread_ts=event.get('thread_ts') if event.get('thread_ts') else event.get('ts') 
         )
 
     return Response(status_code=200)
 
-
-
-#####RUN COMMADND########
-#  uvicorn slack_bot:app --port 8000
+# Local start command: uvicorn slack_bot:app --reload --port 8800
